@@ -102,9 +102,8 @@ echo ""
 echo "▶ [1/6] Vérification de Traefik..."
 
 CERTRESOLVER=$(docker inspect traefik-traefik-1 --format '{{json .Config.Cmd}}' 2>/dev/null \
-    | grep -o '"--certificatesresolvers\.[^"]*\.acme' \
-    | head -1 \
-    | sed 's/--certificatesresolvers\.\(.*\)\.acme/\1/' || echo "inconnu")
+    | grep -oP '(?<=certificatesresolvers\.)[^.]+(?=\.acme)' \
+    | head -1 || echo "inconnu")
 
 if [ "$CERTRESOLVER" = "inconnu" ] || [ -z "$CERTRESOLVER" ]; then
     echo "  ⚠️  Certresolver Traefik non détecté — 'letsencrypt' utilisé par défaut."
