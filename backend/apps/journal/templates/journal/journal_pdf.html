@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Journal de Station — {{ journal.journal_number }}</title>
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 10mm 8mm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; }
+
+  /* En-tête */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4mm; border-bottom: 2px solid #000; padding-bottom: 2mm; }
+  .header-logo { font-size: 14pt; font-weight: bold; color: #c8232c; }
+  .header-title { text-align: center; }
+  .header-title h1 { font-size: 11pt; font-weight: bold; text-transform: uppercase; }
+  .header-title p { font-size: 8pt; }
+  .header-info { text-align: right; font-size: 8pt; }
+
+  /* Tableaux */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
+  th, td { border: 1px solid #666; padding: 1.5mm 2mm; text-align: center; }
+  th { background-color: #2c5f8a; color: #fff; font-size: 7pt; text-transform: uppercase; }
+  td { font-size: 7.5pt; }
+  tr:nth-child(even) td { background-color: #f5f5f5; }
+  .td-label { text-align: left; font-weight: bold; }
+  .td-number { text-align: right; }
+  .td-highlight { background-color: #fff3cd !important; font-weight: bold; }
+  .td-alert { background-color: #fde8e8 !important; color: #c00; }
+
+  /* Sections */
+  .section-title { font-size: 9pt; font-weight: bold; text-transform: uppercase;
+                   background-color: #2c5f8a; color: #fff; padding: 1.5mm 3mm;
+                   margin-bottom: 1mm; margin-top: 3mm; }
+
+  /* Récap bas de page */
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-top: 3mm; }
+  .total-row td { font-weight: bold; background-color: #e8f0fe !important; }
+
+  /* Signature */
+  .signatures { display: flex; justify-content: space-between; margin-top: 6mm; }
+  .signature-box { border: 1px solid #666; width: 45%; padding: 2mm; min-height: 15mm; }
+  .signature-box .sig-label { font-weight: bold; margin-bottom: 2mm; border-bottom: 1px solid #ccc; }
+
+  /* Statut */
+  .status-badge { display: inline-block; padding: 1mm 3mm; border-radius: 2mm; font-weight: bold; font-size: 8pt; }
+  .status-draft   { background: #fef3c7; color: #92400e; }
+  .status-closed  { background: #dbeafe; color: #1e40af; }
+  .status-validated { background: #d1fae5; color: #065f46; }
+
+  .hash { font-size: 6pt; color: #888; margin-top: 2mm; }
+</style>
+</head>
+<body>
+
+<!-- EN-TÊTE -->
+<div class="header">
+  <div class="header-logo">OLA<br><span style="font-size:8pt;color:#000;">Energy Burkina</span></div>
+  <div class="header-title">
+    <h1>Journal Quotidien de Station</h1>
+    <p>N° <strong>{{ journal.journal_number }}</strong> &nbsp;|&nbsp; Station : <strong>{{ journal.station.name }}</strong></p>
+  </div>
+  <div class="header-info">
+    <p>Date : <strong>{{ journal.journal_date|date:"d/m/Y" }}</strong></p>
+    <p>Gérant : {{ journal.manager.get_full_name }}</p>
+    <p>Statut : <span class="status-badge status-{{ journal.status }}">{{ journal.get_status_display }}</span></p>
+  </div>
+</div>
+
+<!-- SECTION 1 : CARBURANTS -->
+<div class="section-title">Section 1 — Mouvements Carburant</div>
+<table>
+  <thead>
+    <tr>
+      <th>Pompe</th>
+      <th>Carburant</th>
+      <th>Index ouv.</th>
+      <th>Index fer.</th>
+      <th>Sortie PV</th>
+      <th>Retours</th>
+      <th>Vente jour (L)</th>
+      <th>Stock préc. (L)</th>
+      <th>Appro (L)</th>
+      <th>Stock théo. (L)</th>
+      <th>Stock réel (L)</th>
+      <th>Écart (L)</th>
+      <th>Commentaire</th>
+      <th>Montant (FCFA)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in journal.fuel_lines.all %}
+    <tr>
+      <td class="td-label">{{ line.pump.label }}</td>
+      <td>{{ line.pump.tank.fuel_type.name }}</td>
+      <td class="td-number">{{ line.index_open|floatformat:2 }}</td>
+      <td class="td-number">{{ line.index_close|default:"—"|floatformat:2 }}</td>
+      <td class="td-number">{% if line.output_volume %}{{ line.output_volume|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="td-number">{{ line.return_volume|floatformat:2 }}</td>
+      <td class="td-number td-highlight">{% if line.sold_volume %}{{ line.sold_volume|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="td-number">{{ line.gauged_stock_open|floatformat:2 }}</td>
+      <td class="td-number">{{ line.received_volume|floatformat:2 }}</td>
+      <td class="td-number">{% if line.theoretical_stock %}{{ line.theoretical_stock|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td class="td-number">{{ line.gauged_stock_close|default:"—"|floatformat:2 }}</td>
+      <td class="td-number {% if line.gauge_diff and line.gauge_diff|floatformat:0 != '0' %}td-alert{% endif %}">
+        {% if line.gauge_diff %}{{ line.gauge_diff|floatformat:2 }}{% else %}—{% endif %}
+      </td>
+      <td style="text-align:left;">{{ line.diff_comment|default:"" }}</td>
+      <td class="td-number td-highlight">{% if line.amount_xof %}{{ line.amount_xof|floatformat:0 }}{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- SECTION 2 : LUBRIFIANTS -->
+<div class="section-title">Section 2 — Suivi Lubrifiants</div>
+<table>
+  <thead>
+    <tr>
+      <th>Produit</th>
+      <th>Stock ouv.</th>
+      <th>Entré</th>
+      <th>Cumul</th>
+      <th>Vendu</th>
+      <th>Stock théo.</th>
+      <th>Stock réel</th>
+      <th>Écart</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for line in journal.lubricant_lines.all %}
+    <tr>
+      <td class="td-label">{{ line.lubricant }}</td>
+      <td class="td-number">{{ line.stock_open|floatformat:3 }}</td>
+      <td class="td-number">{{ line.purchased_qty|floatformat:3 }}</td>
+      <td class="td-number">{{ line.stock_cumul|floatformat:3 }}</td>
+      <td class="td-number td-highlight">{{ line.sold_qty|floatformat:3 }}</td>
+      <td class="td-number">{{ line.stock_close_theoretical|floatformat:3 }}</td>
+      <td class="td-number">{{ line.gauged_qty|default:"—"|floatformat:3 }}</td>
+      <td class="td-number {% if line.diff and line.diff|floatformat:0 != '0' %}td-alert{% endif %}">
+        {% if line.diff %}{{ line.diff|floatformat:3 }}{% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- SECTION 3 : RÉCAP VENTES -->
+<div class="bottom-grid">
+  <div>
+    <div class="section-title">Section 3 — Récapitulatif des Ventes</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Catégorie</th>
+          <th>Qté</th>
+          <th>P.U. (FCFA)</th>
+          <th>Vente jour</th>
+          <th>Cumul veille</th>
+          <th>Cumul mois</th>
+          <th>Mois préc.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for recap in journal.sales_recaps.all %}
+        <tr>
+          <td class="td-label">{{ recap.get_category_display }}</td>
+          <td class="td-number">{{ recap.qty|floatformat:2 }}</td>
+          <td class="td-number">{{ recap.unit_price_xof|floatformat:0 }}</td>
+          <td class="td-number td-highlight">{{ recap.daily_value_xof|floatformat:0 }}</td>
+          <td class="td-number">{{ recap.previous_day_cumul_xof|floatformat:0 }}</td>
+          <td class="td-number">{{ recap.monthly_cumul_xof|floatformat:0 }}</td>
+          <td class="td-number">{{ recap.previous_month_total_xof|floatformat:0 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="3" class="td-label">TOTAL</td>
+          <td class="td-number">{{ total_daily|floatformat:0 }}</td>
+          <td class="td-number">{{ total_prev_day|floatformat:0 }}</td>
+          <td class="td-number">{{ total_monthly|floatformat:0 }}</td>
+          <td class="td-number">{{ total_prev_month|floatformat:0 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div>
+    <div class="section-title">Récapitulatif des Encaissements</div>
+    {% if journal.payment_summary %}
+    <table>
+      <thead><tr><th>Mode de paiement</th><th>Montant (FCFA)</th></tr></thead>
+      <tbody>
+        <tr><td class="td-label">Espèces</td><td class="td-number">{{ journal.payment_summary.cash_amount_xof|floatformat:0 }}</td></tr>
+        <tr><td class="td-label">Tickets</td><td class="td-number">{{ journal.payment_summary.tickets_amount_xof|floatformat:0 }}</td></tr>
+        <tr><td class="td-label">TPE / Carte</td><td class="td-number">{{ journal.payment_summary.tpe_amount_xof|floatformat:0 }}</td></tr>
+        <tr><td class="td-label">Mobile Money</td><td class="td-number">{{ journal.payment_summary.mobile_money_amount_xof|floatformat:0 }}</td></tr>
+        <tr><td class="td-label">Crédit</td><td class="td-number">{{ journal.payment_summary.credit_amount_xof|floatformat:0 }}</td></tr>
+        <tr class="total-row">
+          <td class="td-label">TOTAL ENCAISSÉ</td>
+          <td class="td-number">{{ journal.payment_summary.total_xof|floatformat:0 }}</td>
+        </tr>
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if journal.notes %}
+    <div style="margin-top:3mm; border:1px solid #ccc; padding:2mm;">
+      <strong>Observations :</strong><br>{{ journal.notes }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- SIGNATURES -->
+<div class="signatures">
+  <div class="signature-box">
+    <div class="sig-label">Gérant de station</div>
+    <p>{{ journal.manager.get_full_name }}</p>
+  </div>
+  <div class="signature-box">
+    <div class="sig-label">Validé par</div>
+    {% if journal.validated_by %}
+    <p>{{ journal.validated_by.get_full_name }}<br>
+    Le {{ journal.validated_at|date:"d/m/Y à H\hi" }}</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if journal.pdf_hash %}
+<p class="hash">Empreinte d'intégrité : {{ journal.pdf_hash }}</p>
+{% endif %}
+
+</body>
+</html>

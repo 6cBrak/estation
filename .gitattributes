@@ -1,0 +1,14 @@
+# Normalise toutes les fins de ligne en LF (Linux/VPS)
+* text=auto eol=lf
+
+# Binaires — ne pas toucher
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

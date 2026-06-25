@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport de clôture — {{ journal.station.name }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a2e;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="620" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- En-tête -->
+          <tr>
+            <td style="background:#1e3a5f;padding:24px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#ffffff;font-size:22px;font-weight:bold;">⛽ E-Station</p>
+                    <p style="margin:4px 0 0;color:#94b4d4;font-size:13px;">Rapport de clôture du journal</p>
+                  </td>
+                  <td align="right" style="vertical-align:top;">
+                    <p style="margin:0;color:#94b4d4;font-size:12px;">{{ journal.journal_date|date:"l j F Y" }}</p>
+                    <p style="margin:4px 0 0;color:#ffffff;font-size:13px;font-weight:bold;">{{ journal.journal_number }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Station fermée -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#e8f0fe;border-radius:6px;padding:16px 20px;">
+                <tr>
+                  <td>
+                    <p style="margin:0 0 4px;color:#1e3a5f;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;font-weight:bold;">Station</p>
+                    <p style="margin:0;color:#1e3a5f;font-size:18px;font-weight:bold;">{{ journal.station.name }}</p>
+                    <p style="margin:4px 0 0;color:#4a6fa5;font-size:12px;">{{ journal.station.city }} — Code : {{ journal.station.code }}</p>
+                  </td>
+                  <td align="right" style="vertical-align:middle;">
+                    <span style="display:inline-block;background:#16a34a;color:#ffffff;font-size:12px;font-weight:bold;padding:4px 12px;border-radius:20px;">✓ Clôturé</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- KPIs principaux -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="margin:0 0 12px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">Indicateurs du jour</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <!-- Ventes carburant -->
+                  <td width="33%" style="padding-right:8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;">
+                      <tr><td>
+                        <p style="margin:0 0 4px;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">Ventes carburant</p>
+                        <p style="margin:0;color:#111827;font-size:18px;font-weight:bold;">{{ total_fuel_xof }}</p>
+                        {% if total_liters %}
+                        <p style="margin:4px 0 0;color:#6b7280;font-size:12px;">{{ total_liters }} L</p>
+                        {% endif %}
+                      </td></tr>
+                    </table>
+                  </td>
+                  <!-- Total encaissé -->
+                  <td width="33%" style="padding:0 4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;">
+                      <tr><td>
+                        <p style="margin:0 0 4px;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">Total encaissé</p>
+                        <p style="margin:0;color:#1e3a5f;font-size:18px;font-weight:bold;">{{ total_encaisse }}</p>
+                        {% if cash_variance is not None %}
+                        <p style="margin:4px 0 0;font-size:12px;color:{% if cash_alert %}#dc2626{% else %}#16a34a{% endif %};">
+                          Écart : {% if cash_variance >= 0 %}+{% endif %}{{ cash_variance_fmt }}
+                        </p>
+                        {% endif %}
+                      </td></tr>
+                    </table>
+                  </td>
+                  <!-- Cumul mensuel -->
+                  <td width="33%" style="padding-left:8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;">
+                      <tr><td>
+                        <p style="margin:0 0 4px;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">Cumul du mois</p>
+                        <p style="margin:0;color:#111827;font-size:18px;font-weight:bold;">{{ monthly_xof }}</p>
+                        {% if evolution_pct is not None %}
+                        <p style="margin:4px 0 0;font-size:12px;color:{% if evolution_pct >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+                          {% if evolution_pct >= 0 %}▲{% else %}▼{% endif %} {{ evolution_pct|floatformat:1 }}% vs mois préc.
+                        </p>
+                        {% else %}
+                        <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Premier mois</p>
+                        {% endif %}
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Détail encaissements -->
+          {% if payment %}
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="margin:0 0 10px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">Détail des encaissements</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+                {% for row in payment_rows %}
+                <tr style="{% if forloop.last %}border-top:2px solid #e5e7eb;{% else %}border-bottom:1px solid #f3f4f6;{% endif %}background:{% if forloop.last %}#f9fafb{% else %}#ffffff{% endif %};">
+                  <td style="padding:9px 16px;color:{% if forloop.last %}#111827{% else %}#6b7280{% endif %};font-weight:{% if forloop.last %}bold{% else %}normal{% endif %};">{{ row.label }}</td>
+                  <td align="right" style="padding:9px 16px;color:{% if forloop.last %}#1e3a5f{% else %}#111827{% endif %};font-weight:{% if forloop.last %}bold{% else %}normal{% endif %};">{{ row.value }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Détail par pompe -->
+          {% if pump_rows %}
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="margin:0 0 10px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">Détail des ventes par pompe</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+                <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+                  <th align="left" style="padding:9px 16px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Pompe</th>
+                  <th align="left" style="padding:9px 12px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Carburant</th>
+                  <th align="right" style="padding:9px 12px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Volume</th>
+                  <th align="right" style="padding:9px 16px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Montant</th>
+                </tr>
+                {% for row in pump_rows %}
+                <tr style="border-bottom:1px solid #f3f4f6;background:#ffffff;">
+                  <td style="padding:9px 16px;font-weight:500;color:#111827;">{{ row.label }}</td>
+                  <td style="padding:9px 12px;color:#6b7280;font-size:13px;">{{ row.fuel_type }}</td>
+                  <td align="right" style="padding:9px 12px;color:#111827;">{{ row.liters }} L</td>
+                  <td align="right" style="padding:9px 16px;color:#111827;font-weight:500;">{{ row.amount }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Niveaux des cuves -->
+          {% if tank_rows %}
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="margin:0 0 10px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">Niveaux des cuves</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+                <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+                  <th align="left" style="padding:9px 16px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Cuve</th>
+                  <th align="left" style="padding:9px 12px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Carburant</th>
+                  <th align="right" style="padding:9px 12px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Niveau</th>
+                  <th align="right" style="padding:9px 16px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Capacité</th>
+                </tr>
+                {% for tank in tank_rows %}
+                <tr style="border-bottom:1px solid #f3f4f6;background:{% if tank.is_low %}#fff7ed{% else %}#ffffff{% endif %};">
+                  <td style="padding:9px 16px;font-weight:500;color:#111827;">
+                    {{ tank.label }}{% if tank.is_low %} ⚠{% endif %}
+                  </td>
+                  <td style="padding:9px 12px;color:#6b7280;font-size:13px;">{{ tank.fuel_type }}</td>
+                  <td align="right" style="padding:9px 12px;">
+                    <span style="color:{% if tank.pct < 20 %}#dc2626{% elif tank.pct < 50 %}#f59e0b{% else %}#16a34a{% endif %};font-weight:bold;">
+                      {{ tank.current }} L
+                    </span>
+                    <span style="color:#9ca3af;font-size:11px;"> ({{ tank.pct }}%)</span>
+                  </td>
+                  <td align="right" style="padding:9px 16px;color:#6b7280;">{{ tank.capacity }} L</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Alertes -->
+          {% if alerts %}
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="margin:0 0 10px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">⚠ Alertes</p>
+              {% for alert in alerts %}
+              <div style="margin-bottom:6px;padding:10px 14px;border-radius:5px;background:{% if alert.severity == 'critical' %}#fef2f2{% else %}#fffbeb{% endif %};border-left:4px solid {% if alert.severity == 'critical' %}#dc2626{% else %}#f59e0b{% endif %};">
+                <p style="margin:0;color:{% if alert.severity == 'critical' %}#991b1b{% else %}#92400e{% endif %};font-size:13px;">{{ alert.label }}</p>
+              </div>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Résumé réseau -->
+          {% if network_stations %}
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <p style="margin:0 0 10px;color:#374151;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">État du réseau — {{ journal.journal_date|date:"d/m/Y" }}</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
+                <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+                  <th align="left" style="padding:9px 16px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Station</th>
+                  <th align="center" style="padding:9px 12px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Statut</th>
+                  <th align="right" style="padding:9px 16px;font-size:12px;color:#6b7280;font-weight:bold;text-transform:uppercase;letter-spacing:0.4px;">Ventes</th>
+                </tr>
+                {% for st in network_stations %}
+                <tr style="border-bottom:1px solid #f3f4f6;background:{% if st.is_current %}#eff6ff{% else %}#ffffff{% endif %};">
+                  <td style="padding:9px 16px;font-weight:{% if st.is_current %}bold{% else %}normal{% endif %};color:#111827;">
+                    {{ st.name }}{% if st.is_current %} ★{% endif %}
+                  </td>
+                  <td align="center" style="padding:9px 12px;">
+                    {% if st.status == 'validated' %}
+                      <span style="display:inline-block;background:#dcfce7;color:#166534;font-size:11px;font-weight:bold;padding:2px 10px;border-radius:20px;">Validé</span>
+                    {% elif st.status == 'closed' %}
+                      <span style="display:inline-block;background:#dbeafe;color:#1e40af;font-size:11px;font-weight:bold;padding:2px 10px;border-radius:20px;">Clôturé</span>
+                    {% elif st.status == 'draft' %}
+                      <span style="display:inline-block;background:#fef9c3;color:#854d0e;font-size:11px;font-weight:bold;padding:2px 10px;border-radius:20px;">En cours</span>
+                    {% else %}
+                      <span style="display:inline-block;background:#f3f4f6;color:#6b7280;font-size:11px;font-weight:bold;padding:2px 10px;border-radius:20px;">Pas ouvert</span>
+                    {% endif %}
+                  </td>
+                  <td align="right" style="padding:9px 16px;color:{% if st.total_xof %}#111827{% else %}#9ca3af{% endif %};">
+                    {% if st.total_xof %}{{ st.total_xof_fmt }}{% else %}—{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Pied de page -->
+          <tr>
+            <td style="padding:28px 32px 24px;">
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 20px;">
+              <p style="margin:0;color:#9ca3af;font-size:11px;text-align:center;">
+                Ce mail a été généré automatiquement par <strong>E-Station</strong> lors de la clôture du journal.<br>
+                Ne pas répondre à cet email. Pour toute question, contactez votre administrateur système.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

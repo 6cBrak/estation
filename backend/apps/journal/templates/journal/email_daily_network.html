@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilan réseau E-Station</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
+  <tr><td align="center">
+  <table width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+
+    <!-- HEADER -->
+    <tr>
+      <td style="background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);padding:28px 32px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td>
+              <div style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-.3px;">⛽ E-Station</div>
+              <div style="font-size:13px;color:#93c5fd;margin-top:4px;">Bilan quotidien réseau</div>
+            </td>
+            <td align="right">
+              <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:8px 16px;display:inline-block;">
+                <div style="font-size:11px;color:#bfdbfe;text-transform:uppercase;letter-spacing:.5px;">Date</div>
+                <div style="font-size:15px;font-weight:700;color:#ffffff;">{{ date|date:"d/m/Y" }}</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- TOTAUX RÉSEAU -->
+    <tr>
+      <td style="padding:24px 32px 0;">
+        <div style="font-size:13px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">
+          Total réseau — {{ stations_with_journal }}/{{ stations_count }} station(s) avec journal
+        </div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="25%" style="padding-right:6px;">
+              <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 12px;text-align:center;">
+                <div style="font-size:10px;color:#3b82f6;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Carburant vendu</div>
+                <div style="font-size:18px;font-weight:800;color:#1e40af;margin-top:4px;">{{ net_fuel_xof }}</div>
+                <div style="font-size:11px;color:#6b7280;margin-top:2px;">{{ net_fuel_liters }} L</div>
+              </div>
+            </td>
+            <td width="25%" style="padding:0 3px;">
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 12px;text-align:center;">
+                <div style="font-size:10px;color:#16a34a;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Total encaissé</div>
+                <div style="font-size:18px;font-weight:800;color:#15803d;margin-top:4px;">{{ net_encaisse_xof }}</div>
+                <div style="font-size:11px;color:#6b7280;margin-top:2px;">toutes stations</div>
+              </div>
+            </td>
+            <td width="25%" style="padding:0 3px;">
+              <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px 12px;text-align:center;">
+                <div style="font-size:10px;color:#ea580c;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Total dépenses</div>
+                <div style="font-size:18px;font-weight:800;color:#c2410c;margin-top:4px;">{{ net_charges_xof }}</div>
+                <div style="font-size:11px;color:#6b7280;margin-top:2px;">validées</div>
+              </div>
+            </td>
+            <td width="25%" style="padding-left:6px;">
+              <div style="background:#fafafa;border:1px solid #e5e7eb;border-radius:8px;padding:14px 12px;text-align:center;">
+                <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.4px;">Stations actives</div>
+                <div style="font-size:18px;font-weight:800;color:#374151;margin-top:4px;">{{ stations_with_journal }}</div>
+                <div style="font-size:11px;color:#6b7280;margin-top:2px;">/ {{ stations_count }} configurées</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- DÉTAIL PAR STATION -->
+    {% for row in station_rows %}
+    <tr>
+      <td style="padding:{% if forloop.first %}20px{% else %}0{% endif %} 32px 0;">
+
+        <!-- En-tête station -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:{% if row.has_journal %}#1e3a5f{% else %}#9ca3af{% endif %};border-radius:8px 8px 0 0;padding:12px 16px;">
+          <tr>
+            <td>
+              <span style="font-size:14px;font-weight:700;color:#ffffff;">{{ row.name }}</span>
+              <span style="font-size:11px;color:#93c5fd;margin-left:8px;">{{ row.code }}</span>
+            </td>
+            <td align="right">
+              {% if row.status == "closed" %}
+                <span style="background:#16a34a;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;">Clôturé</span>
+              {% elif row.status == "validated" %}
+                <span style="background:#7c3aed;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;">Validé</span>
+              {% elif row.status == "draft" %}
+                <span style="background:#d97706;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;">En cours</span>
+              {% else %}
+                <span style="background:#6b7280;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;">Pas de journal</span>
+              {% endif %}
+            </td>
+          </tr>
+        </table>
+
+        <!-- Corps station -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">
+
+          {% if row.has_journal %}
+          <!-- KPI rapides -->
+          <tr style="background:#f9fafb;">
+            <td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:33%;text-align:center;">
+                    <div style="font-size:11px;color:#6b7280;">Carburant</div>
+                    <div style="font-size:15px;font-weight:700;color:#1e40af;">{{ row.fuel_xof }}</div>
+                    <div style="font-size:11px;color:#9ca3af;">{{ row.fuel_liters }} L</div>
+                  </td>
+                  <td style="width:33%;text-align:center;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+                    <div style="font-size:11px;color:#6b7280;">Encaissé</div>
+                    <div style="font-size:15px;font-weight:700;color:#15803d;">{{ row.encaisse_xof }}</div>
+                  </td>
+                  <td style="width:33%;text-align:center;">
+                    <div style="font-size:11px;color:#6b7280;">Pompes</div>
+                    <div style="font-size:15px;font-weight:700;color:#374151;">{{ row.pump_rows|length }}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Détail pompes -->
+          {% if row.pump_rows %}
+          <tr>
+            <td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">
+              <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Pompes</div>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;">
+                <tr style="background:#f3f4f6;">
+                  <th style="padding:4px 8px;text-align:left;font-weight:600;color:#6b7280;">Pompe</th>
+                  <th style="padding:4px 8px;text-align:left;font-weight:600;color:#6b7280;">Carburant</th>
+                  <th style="padding:4px 8px;text-align:right;font-weight:600;color:#6b7280;">Litres</th>
+                  <th style="padding:4px 8px;text-align:right;font-weight:600;color:#6b7280;">Montant</th>
+                </tr>
+                {% for p in row.pump_rows %}
+                <tr style="border-top:1px solid #f3f4f6;">
+                  <td style="padding:4px 8px;color:#374151;">{{ p.label }}</td>
+                  <td style="padding:4px 8px;color:#6b7280;">{{ p.fuel_type }}</td>
+                  <td style="padding:4px 8px;text-align:right;color:#374151;">{{ p.liters }}</td>
+                  <td style="padding:4px 8px;text-align:right;font-weight:600;color:#1e40af;">{{ p.amount }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Cuves -->
+          {% if row.tank_rows %}
+          <tr>
+            <td style="padding:10px 16px;">
+              <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Niveaux des cuves</div>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;">
+                {% for t in row.tank_rows %}
+                <tr style="{% if not forloop.first %}border-top:1px solid #f3f4f6;{% endif %}">
+                  <td style="padding:5px 8px;color:#374151;width:120px;">{{ t.label }}</td>
+                  <td style="padding:5px 8px;color:#6b7280;width:80px;">{{ t.fuel_type }}</td>
+                  <td style="padding:5px 8px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="background:#e5e7eb;border-radius:4px;height:8px;overflow:hidden;">
+                          <div style="background:{% if t.is_low %}#ef4444{% elif t.pct < 50 %}#f97316{% else %}#22c55e{% endif %};width:{{ t.pct }}%;height:8px;border-radius:4px;"></div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="padding:5px 8px;text-align:right;color:#374151;white-space:nowrap;">{{ t.current }} L</td>
+                  <td style="padding:5px 8px;text-align:right;color:#9ca3af;white-space:nowrap;">{{ t.pct }}%</td>
+                  <td style="padding:5px 8px;width:20px;">
+                    {% if t.is_low %}<span style="color:#ef4444;font-size:14px;">⚠</span>{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% else %}
+          <!-- Pas de journal -->
+          <tr>
+            <td style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">
+              Aucun journal ouvert pour cette station aujourd'hui.
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Dépenses du jour (indépendant du journal) -->
+          {% if row.has_charges %}
+          <tr>
+            <td style="padding:10px 16px;border-top:1px solid #e5e7eb;">
+              <div style="font-size:11px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Dépenses du jour</div>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;">
+                <tr style="background:#fff7ed;">
+                  <th style="padding:4px 8px;text-align:left;font-weight:600;color:#9a3412;">Libellé</th>
+                  <th style="padding:4px 8px;text-align:left;font-weight:600;color:#9a3412;">Catégorie</th>
+                  <th style="padding:4px 8px;text-align:left;font-weight:600;color:#9a3412;">Statut</th>
+                  <th style="padding:4px 8px;text-align:right;font-weight:600;color:#9a3412;">Montant</th>
+                </tr>
+                {% for c in row.charge_rows %}
+                <tr style="border-top:1px solid #fef3c7;">
+                  <td style="padding:4px 8px;color:#374151;">{{ c.label }}</td>
+                  <td style="padding:4px 8px;color:#6b7280;">{{ c.category_display }}</td>
+                  <td style="padding:4px 8px;">
+                    {% if c.status == "validated" %}
+                      <span style="color:#16a34a;font-weight:600;">✓ Validée</span>
+                    {% elif c.status == "pending" %}
+                      <span style="color:#d97706;">En attente</span>
+                    {% else %}
+                      <span style="color:#dc2626;">Rejetée</span>
+                    {% endif %}
+                  </td>
+                  <td style="padding:4px 8px;text-align:right;font-weight:600;color:#c2410c;">{{ c.amount }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="border-top:2px solid #fed7aa;background:#fff7ed;">
+                  <td colspan="3" style="padding:5px 8px;font-weight:700;color:#9a3412;">Total dépenses validées</td>
+                  <td style="padding:5px 8px;text-align:right;font-weight:700;color:#c2410c;">{{ row.charges_xof }}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+        </table>
+      </td>
+    </tr>
+    {% endfor %}
+
+    <!-- FOOTER -->
+    <tr>
+      <td style="padding:24px 32px;border-top:1px solid #e5e7eb;margin-top:20px;">
+        <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+          Ce rapport est généré automatiquement par <strong>E-Station</strong> — OLA Energy Burkina.<br/>
+          Ne pas répondre à cet e-mail.
+        </p>
+      </td>
+    </tr>
+
+  </table>
+  </td></tr>
+</table>
+
+</body>
+</html>

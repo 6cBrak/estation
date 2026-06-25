@@ -1,0 +1,59 @@
+# ─── Secrets — NE JAMAIS COMMITER ────────────────────────────────────────────
+.env
+.env.prod
+.env.local
+.env.*.local
+
+# ─── Python / Django ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Environnements virtuels
+venv/
+.venv/
+env/
+ENV/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+backend/staticfiles/
+backend/media/
+backend/apps/*/migrations/__pycache__/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ─── Node / React ────────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/build/
+*.tsbuildinfo
+
+# ─── Claude Code ─────────────────────────────────────────────────────────────
+.claude/
+
+# ─── Éditeurs ────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Docker ──────────────────────────────────────────────────────────────────
+# On commit docker-compose.prod.yml mais pas les overrides locaux
+docker-compose.override.yml

@@ -1,0 +1,89 @@
+services:
+
+  # ── Base de données PostgreSQL ────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: estation_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend Django + Gunicorn ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: estation_backend
+    restart: unless-stopped
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+    env_file:
+      - .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Frontend React + Nginx (reverse proxy vers Django) ────────────────────
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: estation_nginx
+    restart: unless-stopped
+    volumes:
+      - static_files:/static:ro
+      - media_files:/media:ro
+    depends_on:
+      - backend
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+
+      # ── Routeur HTTPS ────────────────────────────────────────────────────
+      - "traefik.http.routers.estation.rule=Host(`estation.gsoft-bf.com`)"
+      - "traefik.http.routers.estation.entrypoints=websecure"
+      - "traefik.http.routers.estation.tls=true"
+      # ⚠️  Vérifier le nom du certresolver avec :
+      #    docker inspect traefik-traefik-1 --format '{{json .Config.Cmd}}'
+      #    et chercher --certificatesresolvers.<NOM>
+      - "traefik.http.routers.estation.tls.certresolver=letsencrypt"
+      - "traefik.http.services.estation.loadbalancer.server.port=80"
+
+      # ── Redirection HTTP → HTTPS ─────────────────────────────────────────
+      - "traefik.http.routers.estation-http.rule=Host(`estation.gsoft-bf.com`)"
+      - "traefik.http.routers.estation-http.entrypoints=web"
+      - "traefik.http.routers.estation-http.middlewares=estation-https-redirect"
+      - "traefik.http.middlewares.estation-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.estation-https-redirect.redirectscheme.permanent=true"
+
+networks:
+  web:
+    external: true
+  internal:
+    name: estation_internal
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: estation_postgres_data
+  static_files:
+    name: estation_static_files
+  media_files:
+    name: estation_media_files
