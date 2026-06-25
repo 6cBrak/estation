@@ -590,7 +590,7 @@ function ApproModal({ open, label, currentQty, onClose, onSubmit, loading, error
     <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); reset() } }}>
       <DialogContent>
         <DialogHeader><DialogTitle>Approvisionnement</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit((d) => onSubmit(String(newQty)))}>
+        <form onSubmit={handleSubmit((_) => onSubmit(String(newQty)))}>
           <DialogBody className="space-y-4">
             <p className="text-sm font-medium text-gray-800">{label}</p>
             <div className="bg-gray-50 rounded p-3 flex justify-between text-sm">

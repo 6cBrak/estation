@@ -83,7 +83,7 @@ export default function POSTerminal({ onSubmit, onCancel, loading, error }: POST
     }
     if (activeTab === 'gas') {
       return (gasData ?? [])
-        .filter((s) => s.quantity > 0)
+        .filter((s) => parseInt(s.quantity) > 0)
         .filter((s) => !q || s.format_label.toLowerCase().includes(q))
         .map((s) => ({
           key: `gas_${s.id}`,

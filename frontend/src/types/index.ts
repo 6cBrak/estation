@@ -185,6 +185,7 @@ export interface StationDashboard {
     total_sales_xof: number
     cash_variance_xof: number | null
     cash_alert: boolean
+    fuel_summary?: { pump: string; fuel_type: string; sold_volume: string | null }[]
     payment_summary: {
       cash: number
       tickets: number

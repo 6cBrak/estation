@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Trash2, Plus } from 'lucide-react'
-import { formatXOF, cn } from '@/lib/utils'
+import { formatXOF } from '@/lib/utils'
 import { extractApiError } from '@/lib/utils'
 
 const CATEGORIES = [

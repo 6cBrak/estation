@@ -169,7 +169,6 @@ export default function CaissePage() {
   const [cancelId, setCancelId] = useState<string | null>(null)
   const [cancelReason, setCancelReason] = useState('')
 
-  const today = new Date().toISOString().split('T')[0]
   const isManager = user?.role === 'super_admin' || user?.role === 'manager'
 
   const { data: sessionsData, isLoading: sessionsLoading } = useQuery({

@@ -199,8 +199,8 @@ export default function DashboardPage() {
         <KpiCard
           label="Dépenses du jour"
           value={data?.charges ? formatXOF(data.charges.total_xof) : '—'}
-          sub={data?.charges?.total_pending_xof > 0
-            ? <span className="text-xs text-amber-500">{formatXOF(data.charges.total_pending_xof)} en attente</span>
+          sub={(data?.charges?.total_pending_xof ?? 0) > 0
+            ? <span className="text-xs text-amber-500">{formatXOF(data?.charges?.total_pending_xof ?? 0)} en attente</span>
             : <span className="text-xs text-gray-400">aucune en attente</span>}
           icon={<Receipt size={22} />}
         />
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                   <span className="text-xs text-gray-500 font-mono">{journal.journal_number}</span>
                 </div>
                 <div className="space-y-1.5">
-                  {journal.fuel_summary.map((f) => (
+                  {(journal.fuel_summary ?? []).map((f: { pump: string; fuel_type: string; sold_volume: string | null }) => (
                     <div key={f.pump} className="flex justify-between text-sm">
                       <span className="text-gray-600">{f.pump} <span className="text-xs text-gray-400">({f.fuel_type})</span></span>
                       <span className="font-medium">{f.sold_volume ? `${Number(f.sold_volume).toLocaleString('fr-FR')} L` : '—'}</span>
