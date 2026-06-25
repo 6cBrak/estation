@@ -195,7 +195,7 @@ echo "  Django Admin : https://$DOMAIN/admin/"
 echo "  API Docs     : https://$DOMAIN/api/v1/docs/"
 echo ""
 
-docker compose -f "$COMPOSE_FILE" ps
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
 echo ""
 echo "  Commandes utiles :"
