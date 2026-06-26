@@ -26,7 +26,7 @@ def _fuel_line_amount(line) -> Decimal:
         return Decimal("0")
     output = max(line.index_close - line.index_open, Decimal("0"))
     sold = max(output - line.return_volume, Decimal("0"))
-    return sold * line.pump.tank.fuel_type.unit_price
+    return sold * line.nozzle.tank.fuel_type.unit_price
 
 
 def _fuel_line_liters(line) -> Decimal:
@@ -71,7 +71,7 @@ def _build_network_summary(journal: StationJournal) -> list[dict]:
     today_journals = {
         j.station_id: j
         for j in StationJournal.objects.filter(journal_date=today, is_active=True)
-        .prefetch_related("fuel_lines__pump__tank__fuel_type")
+        .prefetch_related("fuel_lines__nozzle__tank__fuel_type")
     }
     rows = []
     for st in stations:
@@ -98,7 +98,7 @@ def _build_alerts(journal: StationJournal, total_fuel_xof: Decimal, total_encais
             ecart_pct = abs(line.gauge_diff / line.theoretical_stock * 100)
             if ecart_pct > tolerance_pct:
                 alerts.append({
-                    "label": f"Écart de jaugeage {line.pump.label} : {ecart_pct:.1f}% (tolérance {tolerance_pct}%)",
+                    "label": f"Écart de jaugeage {line.nozzle.label} : {ecart_pct:.1f}% (tolérance {tolerance_pct}%)",
                     "severity": "critical" if ecart_pct > tolerance_pct * 2 else "warning",
                 })
 
@@ -123,7 +123,7 @@ def send_journal_closure_email(journal_id: str) -> None:
     try:
         journal = (
             StationJournal.objects.select_related("station")
-            .prefetch_related("fuel_lines__pump__tank__fuel_type", "sales_recaps", "lubricant_lines")
+            .prefetch_related("fuel_lines__nozzle__tank__fuel_type", "sales_recaps", "lubricant_lines")
             .get(pk=journal_id)
         )
 
@@ -165,8 +165,8 @@ def send_journal_closure_email(journal_id: str) -> None:
             liters = _fuel_line_liters(line)
             amount = _fuel_line_amount(line)
             pump_rows.append({
-                "label": line.pump.label,
-                "fuel_type": line.pump.tank.fuel_type.name,
+                "label": line.nozzle.label,
+                "fuel_type": line.nozzle.tank.fuel_type.name,
                 "liters": f"{int(liters):,}".replace(",", " ") if liters else "—",
                 "amount": _fmt_xof(amount),
             })
@@ -253,7 +253,7 @@ def send_daily_network_email(target_date: date | None = None) -> None:
                 journal_date=target_date, is_active=True
             ).select_related("station")
             .prefetch_related(
-                "fuel_lines__pump__tank__fuel_type",
+                "fuel_lines__nozzle__tank__fuel_type",
                 "lubricant_lines",
                 "sales_recaps",
             )
@@ -284,8 +284,8 @@ def send_daily_network_email(target_date: date | None = None) -> None:
                     st_fuel_liters += liters
                     st_fuel_xof += amount
                     pump_rows.append({
-                        "label": line.pump.label,
-                        "fuel_type": line.pump.tank.fuel_type.name,
+                        "label": line.nozzle.label,
+                        "fuel_type": line.nozzle.tank.fuel_type.name,
                         "liters": f"{int(liters):,}".replace(",", " ") if liters else "—",
                         "amount": _fmt_xof(amount),
                     })

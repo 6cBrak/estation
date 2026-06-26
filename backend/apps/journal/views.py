@@ -34,6 +34,7 @@ from .serializers import (
     StationJournalDetailSerializer,
     StationJournalListSerializer,
 )
+from .emails import send_journal_closure_email
 from .services import (
     JournalServiceError,
     close_journal,
@@ -157,6 +158,7 @@ class StationJournalViewSet(StationFilterMixin, ModelViewSet):
             journal = close_journal(journal)
         except JournalServiceError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        send_journal_closure_email(str(journal.id))
         out = StationJournalDetailSerializer(journal, context={"request": request})
         return Response(out.data)
 
