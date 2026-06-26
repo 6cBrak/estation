@@ -5,7 +5,7 @@ from apps.core.models import BaseModel
 class FuelType(models.Model):
     station = models.ForeignKey(
         "stations.Station", on_delete=models.CASCADE,
-        related_name="fuel_types", null=True, blank=True
+        related_name="fuel_types"
     )
     code = models.CharField(max_length=20)
     name = models.CharField(max_length=50)

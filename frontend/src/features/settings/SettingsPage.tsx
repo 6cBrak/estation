@@ -350,8 +350,9 @@ function TanksTab({ stationId }: { stationId?: string }) {
   })
 
   const { data: fuelTypes = [] } = useQuery({
-    queryKey: ['fuel-types'],
-    queryFn: () => fuelApi.listTypes().then((r) => unwrapList<FuelType>(r.data)),
+    queryKey: ['fuel-types', stationId],
+    queryFn: () => fuelApi.listTypes(stationId ? { station: stationId } : undefined).then((r) => unwrapList<FuelType>(r.data)),
+    enabled: !!stationId,
   })
 
   const createMut = useMutation({
