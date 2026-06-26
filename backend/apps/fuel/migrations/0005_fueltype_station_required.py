@@ -13,13 +13,39 @@ def fix_fueltype_null_stations(apps, schema_editor):
     Tank = apps.get_model("fuel", "Tank")
 
     for ft in FuelType.objects.filter(station__isnull=True):
-        # Chercher la station via une cuve qui utilise ce type
-        tank = Tank.objects.filter(fuel_type=ft, is_active=True).first()
-        if tank:
-            ft.station = tank.station
-            ft.save()
-        else:
+        tanks = list(Tank.objects.filter(fuel_type=ft, is_active=True).select_related("station"))
+
+        if not tanks:
+            # Aucune cuve ne l'utilise → donnée morte
             ft.delete()
+            continue
+
+        # Regrouper les cuves par station
+        by_station: dict = {}
+        for tank in tanks:
+            sid = str(tank.station_id)
+            if sid not in by_station:
+                by_station[sid] = (tank.station, [])
+            by_station[sid][1].append(tank)
+
+        first = True
+        for _sid, (station, station_tanks) in by_station.items():
+            if first:
+                # Rattacher le FuelType existant à la première station
+                ft.station = station
+                ft.save()
+                first = False
+            else:
+                # Créer un FuelType dédié pour chaque station supplémentaire
+                new_ft = FuelType.objects.create(
+                    station=station,
+                    code=ft.code,
+                    name=ft.name,
+                    unit_price=ft.unit_price,
+                )
+                for tank in station_tanks:
+                    tank.fuel_type = new_ft
+                    tank.save()
 
 
 class Migration(migrations.Migration):
