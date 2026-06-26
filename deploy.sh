@@ -185,6 +185,20 @@ if [ ! -f ".superadmin_created" ]; then
     touch .superadmin_created
 fi
 
+# ── Cron : bilan réseau quotidien à 21h ──────────────────────────────────────
+echo ""
+echo "▶ Configuration du cron bilan réseau (21h00 UTC)..."
+
+CRON_JOB="0 21 * * * docker exec estation_backend python manage.py send_daily_report >> /var/log/estation_cron.log 2>&1"
+CRON_MARKER="estation_daily_report"
+
+if crontab -l 2>/dev/null | grep -q "$CRON_MARKER"; then
+    echo "  ✅ Cron déjà configuré"
+else
+    ( crontab -l 2>/dev/null; echo "# $CRON_MARKER"; echo "$CRON_JOB" ) | crontab -
+    echo "  ✅ Cron ajouté : bilan réseau tous les jours à 21h00"
+fi
+
 echo ""
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║  ✅ E-Station déployé avec succès !                  ║"
