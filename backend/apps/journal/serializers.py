@@ -162,6 +162,39 @@ class JournalPaymentSummarySerializer(serializers.ModelSerializer):
     total_xof = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     avoir_total_xof = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     avoir_solde_xof = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
+    ecart_encaissement_xof = serializers.SerializerMethodField()
+    ecart_encaissement_cumul_xof = serializers.SerializerMethodField()
+
+    def _fuel_total(self, journal) -> Decimal:
+        """Somme des montants carburant vendus (calculés depuis les index)."""
+        return sum(
+            (fl.amount_xof or Decimal("0"))
+            for fl in journal.fuel_lines.all()
+        )
+
+    def get_ecart_encaissement_xof(self, obj: JournalPaymentSummary) -> Decimal:
+        """Écart = Total encaissé − Valeur carburant vendu (du jour)."""
+        return obj.total_xof - self._fuel_total(obj.journal)
+
+    def get_ecart_encaissement_cumul_xof(self, obj: JournalPaymentSummary) -> Decimal:
+        """Cumul mensuel des écarts encaissement pour cette station."""
+        d = obj.journal.journal_date
+        journals = StationJournal.objects.filter(
+            station=obj.journal.station,
+            journal_date__year=d.year,
+            journal_date__month=d.month,
+            is_active=True,
+        ).prefetch_related("fuel_lines__nozzle__tank__fuel_type", "payment_summary")
+
+        total = Decimal("0")
+        for j in journals:
+            fuel_total = self._fuel_total(j)
+            try:
+                pay_total = j.payment_summary.total_xof
+            except JournalPaymentSummary.DoesNotExist:
+                pay_total = Decimal("0")
+            total += pay_total - fuel_total
+        return total
 
     class Meta:
         model = JournalPaymentSummary
@@ -172,13 +205,22 @@ class JournalPaymentSummarySerializer(serializers.ModelSerializer):
             "tpe_amount_xof",
             "mobile_money_amount_xof",
             "credit_amount_xof",
+            "ecart_pompiste_xof",
             "total_xof",
             "avoir_fuel_xof",
             "avoir_cash_xof",
             "avoir_total_xof",
             "avoir_solde_xof",
+            "ecart_encaissement_xof",
+            "ecart_encaissement_cumul_xof",
         ]
-        read_only_fields = ["id", "avoir_total_xof", "avoir_solde_xof"]
+        read_only_fields = [
+            "id",
+            "avoir_total_xof",
+            "avoir_solde_xof",
+            "ecart_encaissement_xof",
+            "ecart_encaissement_cumul_xof",
+        ]
 
 
 class AvoirWithdrawalSerializer(serializers.ModelSerializer):

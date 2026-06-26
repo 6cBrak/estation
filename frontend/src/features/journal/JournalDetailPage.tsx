@@ -280,6 +280,7 @@ export default function JournalDetailPage() {
           journalId={id!}
           journalDate={journal.journal_date}
           stationId={journal.station}
+          totalFuelXof={journal.fuel_lines.reduce((s, l) => s + Number(l.amount_xof ?? 0), 0)}
         />
       </div>
 

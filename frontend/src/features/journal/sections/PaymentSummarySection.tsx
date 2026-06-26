@@ -24,12 +24,14 @@ export default function PaymentSummarySection({
   journalId,
   journalDate,
   stationId,
+  totalFuelXof,
 }: {
   summary: JournalPaymentSummary
   isEditable: boolean
   journalId: string
   journalDate: string
   stationId: string
+  totalFuelXof: number
 }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -40,6 +42,7 @@ export default function PaymentSummarySection({
     tpe_amount_xof: summary.tpe_amount_xof,
     mobile_money_amount_xof: summary.mobile_money_amount_xof,
     credit_amount_xof: summary.credit_amount_xof,
+    ecart_pompiste_xof: summary.ecart_pompiste_xof,
   })
 
   // Extraire mois/année depuis la date du journal
@@ -113,11 +116,60 @@ export default function PaymentSummarySection({
                 )}
               </div>
             ))}
+
+            {/* Écart pompiste — saisie manuelle */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <span className="text-sm text-gray-600">Écart pompiste</span>
+              {editing ? (
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.ecart_pompiste_xof ?? '0'}
+                  onChange={(e) => setForm((f) => ({ ...f, ecart_pompiste_xof: e.target.value }))}
+                  className="w-36 h-7 text-right text-sm"
+                />
+              ) : (
+                <span className="text-sm font-medium text-orange-600">
+                  {formatXOF(Number(summary.ecart_pompiste_xof || '0'))}
+                </span>
+              )}
+            </div>
+
+            {/* Total encaissé */}
             <div className="flex items-center justify-between pt-3 border-t font-bold">
               <span className="text-sm">Total encaissé</span>
               <span className="text-base text-blue-700">
                 {formatXOF(Number(summary.total_xof))}
               </span>
+            </div>
+
+            {/* Écart encaissement = Total encaissé − Valeur carburant vendu */}
+            <div className="mt-3 pt-3 border-t space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Valeur carburant vendu</span>
+                <span className="text-sm text-gray-500">{formatXOF(totalFuelXof)}</span>
+              </div>
+              <div className="flex items-center justify-between font-semibold">
+                <span className="text-sm">Écart encaissement</span>
+                <span className={cn(
+                  'text-sm font-bold',
+                  Number(summary.ecart_encaissement_xof) < 0
+                    ? 'text-red-600'
+                    : Number(summary.ecart_encaissement_xof) > 0
+                      ? 'text-green-600'
+                      : 'text-gray-700'
+                )}>
+                  {formatXOF(Number(summary.ecart_encaissement_xof ?? 0))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>Cumul mensuel écart</span>
+                <span className={cn(
+                  Number(summary.ecart_encaissement_cumul_xof) < 0 ? 'text-red-500' : 'text-gray-500'
+                )}>
+                  {formatXOF(Number(summary.ecart_encaissement_cumul_xof ?? 0))}
+                </span>
+              </div>
             </div>
           </div>
         </CardContent>
