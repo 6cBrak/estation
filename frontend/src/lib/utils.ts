@@ -37,6 +37,12 @@ export function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+export function yesterday(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
 /** Extrait le message d'erreur lisible depuis une erreur Axios/DRF. */
 export function extractApiError(err: unknown): string {
   const data = (err as { response?: { data?: unknown } })?.response?.data

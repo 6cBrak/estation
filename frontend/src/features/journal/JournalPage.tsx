@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Plus, BookOpen, FileText } from 'lucide-react'
+import { Plus, BookOpen, FileText, CalendarDays } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { journalApi } from '@/api/journal'
 import { useAuthStore } from '@/stores/auth'
-import { today } from '@/lib/utils'
+import { today, yesterday } from '@/lib/utils'
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: 'warning' | 'default' | 'success' }> = {
@@ -24,7 +31,10 @@ export default function JournalPage() {
   const { currentStation } = useAuthStore()
   const navigate = useNavigate()
   const qc = useQueryClient()
+
   const [error, setError] = useState<string | null>(null)
+  const [showDialog, setShowDialog] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(yesterday())
 
   const { data, isLoading } = useQuery({
     queryKey: ['journals', currentStation?.id],
@@ -33,13 +43,14 @@ export default function JournalPage() {
   })
 
   const openMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (date: string) =>
       journalApi.open({
         ...(currentStation?.id ? { station: currentStation.id } : {}),
-        journal_date: today(),
+        journal_date: date,
       }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['journals'] })
+      setShowDialog(false)
       navigate(`/journal/${res.data.id}`)
     },
     onError: (err: unknown) => {
@@ -49,7 +60,34 @@ export default function JournalPage() {
     },
   })
 
+  // Journal correspondant à la date sélectionnée dans le dialogue
+  const journalForSelectedDate = data?.results.find((j) => j.journal_date === selectedDate)
+
+  // Journal du jour (pour la carte mise en avant)
   const todayJournal = data?.results.find((j) => j.journal_date === today())
+
+  const handleOpenDialog = () => {
+    setSelectedDate(yesterday())
+    setError(null)
+    setShowDialog(true)
+  }
+
+  const handleConfirm = () => {
+    if (journalForSelectedDate) {
+      setShowDialog(false)
+      navigate(`/journal/${journalForSelectedDate.id}`)
+    } else {
+      openMutation.mutate(selectedDate)
+    }
+  }
+
+  const formatDateLabel = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
 
   if (isLoading) {
     return (
@@ -66,20 +104,10 @@ export default function JournalPage() {
           <h1 className="text-2xl font-bold text-gray-900">Journal de station</h1>
           <p className="text-sm text-gray-500">Historique des journaux quotidiens</p>
         </div>
-        {!todayJournal ? (
-          <Button
-            onClick={() => openMutation.mutate()}
-            disabled={openMutation.isPending}
-          >
-            <Plus size={16} />
-            {openMutation.isPending ? 'Ouverture…' : 'Ouvrir le journal du jour'}
-          </Button>
-        ) : (
-          <Button onClick={() => navigate(`/journal/${todayJournal.id}`)}>
-            <BookOpen size={16} />
-            Journal du jour
-          </Button>
-        )}
+        <Button onClick={handleOpenDialog}>
+          <Plus size={16} />
+          Nouveau journal
+        </Button>
       </div>
 
       {error && (
@@ -150,6 +178,74 @@ export default function JournalPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogue de sélection de date */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays size={18} />
+              Date du journal
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">
+                Sélectionner la date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                max={today()}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value)
+                  setError(null)
+                }}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {selectedDate && (
+                <p className="text-xs text-gray-500 capitalize">
+                  {formatDateLabel(selectedDate)}
+                </p>
+              )}
+            </div>
+
+            {journalForSelectedDate ? (
+              <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+                Un journal existe déjà pour cette date ({journalForSelectedDate.journal_number}).
+                Cliquer sur <strong>Ouvrir</strong> pour y accéder.
+              </div>
+            ) : (
+              <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+                Aucun journal pour cette date — un nouveau journal sera créé.
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDialog(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={!selectedDate || openMutation.isPending}
+            >
+              {openMutation.isPending
+                ? 'Création…'
+                : journalForSelectedDate
+                  ? 'Ouvrir'
+                  : 'Créer le journal'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
