@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { reportsApi } from '@/api/reports'
 import { formatXOF, today, yesterday, addDays, formatDateLong } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
