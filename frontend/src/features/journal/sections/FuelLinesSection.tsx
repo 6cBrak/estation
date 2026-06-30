@@ -349,14 +349,12 @@ function TankHeader({
 // ─── Bloc cuve complet ────────────────────────────────────────────────────────
 
 function TankBlock({
-  tankId,
   tankLabel,
   fuelType,
   lines,
   isEditable,
   journalId,
 }: {
-  tankId: string
   tankLabel: string
   fuelType: string
   lines: JournalFuelLine[]
@@ -454,7 +452,6 @@ export default function FuelLinesSection({
           return (
             <TankBlock
               key={tankId}
-              tankId={tankId}
               tankLabel={first.tank_label}
               fuelType={first.fuel_type}
               lines={tankLines}
