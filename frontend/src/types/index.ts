@@ -35,7 +35,10 @@ export interface JournalFuelLine {
   id: string
   nozzle: string
   nozzle_label: string
+  tank_id: string
+  tank_label: string
   fuel_type: string
+  is_tank_reference: boolean
   index_open: string
   index_close: string | null
   return_volume: string

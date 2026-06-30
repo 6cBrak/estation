@@ -25,6 +25,7 @@ export default function PaymentSummarySection({
   journalDate,
   stationId,
   totalFuelXof,
+  totalExpensesXof,
 }: {
   summary: JournalPaymentSummary
   isEditable: boolean
@@ -32,6 +33,7 @@ export default function PaymentSummarySection({
   journalDate: string
   stationId: string
   totalFuelXof: number
+  totalExpensesXof: number
 }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -141,6 +143,25 @@ export default function PaymentSummarySection({
               <span className="text-base text-blue-700">
                 {formatXOF(Number(summary.total_xof))}
               </span>
+            </div>
+
+            {/* Dépenses du jour → Montant en caisse */}
+            <div className="mt-3 pt-3 border-t space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">− Dépenses du jour</span>
+                <span className="text-sm text-red-600 font-medium">
+                  {formatXOF(totalExpensesXof)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t font-bold">
+                <span className="text-sm">= Montant en caisse</span>
+                <span className={cn(
+                  'text-base font-bold',
+                  Number(summary.total_xof) - totalExpensesXof < 0 ? 'text-red-600' : 'text-green-700'
+                )}>
+                  {formatXOF(Number(summary.total_xof) - totalExpensesXof)}
+                </span>
+              </div>
             </div>
 
             {/* Écart encaissement = Total encaissé − Valeur carburant vendu */}

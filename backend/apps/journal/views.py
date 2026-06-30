@@ -45,51 +45,6 @@ from .services import (
 )
 
 
-def _cascade_gauged_stock(line: JournalFuelLine) -> None:
-    """
-    Propage le stock résiduel de P1 vers le gauged_stock_open de P2
-    (même journal, même cuve, display_order supérieur).
-
-    Priorité de la valeur cascadée :
-    1. gauged_stock_close (stock mesuré physiquement) si disponible
-    2. theoretical_stock  (calculé depuis les index)
-    Si aucune valeur calculable, ne fait rien.
-    """
-    from apps.fuel.models import Nozzle
-
-    if line.gauged_stock_close is not None:
-        cascade_value = line.gauged_stock_close
-    elif line.theoretical_stock is not None:
-        cascade_value = line.theoretical_stock
-    else:
-        return
-
-    tank_id = line.nozzle.tank_id
-    current_order = line.nozzle.display_order
-
-    next_nozzle = (
-        Nozzle.objects.filter(
-            station_id=line.nozzle.station_id,
-            tank_id=tank_id,
-            display_order__gt=current_order,
-            is_active=True,
-        )
-        .order_by("display_order")
-        .first()
-    )
-
-    if next_nozzle is None:
-        return
-
-    next_line = JournalFuelLine.objects.filter(
-        journal=line.journal,
-        nozzle=next_nozzle,
-    ).first()
-
-    if next_line is not None:
-        next_line.gauged_stock_open = cascade_value
-        next_line.save(update_fields=["gauged_stock_open"])
-
 
 class StationJournalViewSet(StationFilterMixin, ModelViewSet):
     """
@@ -328,15 +283,6 @@ class JournalFuelLineViewSet(_JournalSubModelMixin, RetrieveModelMixin, UpdateMo
         serializer = JournalFuelLineUpdateSerializer(line, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
-        # Cascade cuve partagée : propager le stock résiduel sur le pistolet suivant
-        # Se déclenche dès qu'un champ influant sur le stock théorique ou réel est modifié
-        _FIELDS_TRIGGERING_CASCADE = {
-            "index_close", "received_volume", "return_volume",
-            "gauged_stock_open", "gauged_stock_close",
-        }
-        if _FIELDS_TRIGGERING_CASCADE & set(request.data.keys()):
-            _cascade_gauged_stock(line)
 
         out = JournalFuelLineSerializer(line, context={"request": request})
         return Response(out.data)

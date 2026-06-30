@@ -119,17 +119,15 @@ def open_journal(
 
     prev_journal = _get_previous_journal(station.id, journal_date)
 
-    # Lignes carburant — une par pistolet actif, triées par display_order
-    # Le stock d'ouverture d'un pistolet partageant la cuve du précédent reprend
-    # le stock de clôture de ce dernier (logique de cascade cuve partagée).
+    # Lignes carburant — une par pistolet actif, triées par display_order.
+    # Le 1er pistolet de chaque cuve est le "pistolet de référence" : il porte
+    # le jaugeage (gauged_stock_open/close) et l'approvisionnement (received_volume).
+    # Les autres pistolets de la même cuve ne portent que leurs index de compteur.
     nozzles = Nozzle.objects.filter(station=station, is_active=True).select_related(
         "tank__fuel_type"
     ).order_by("display_order")
 
-    # Mémoriser le dernier stock de clôture par tank pour la cascade
-    last_close_by_tank: dict = {}
-    # Tanks déjà initialisés depuis le niveau cuve (premier pistolet du tank, jour J0)
-    initialized_tanks: set = set()
+    reference_tanks: set = set()  # tank_ids ayant déjà leur pistolet de référence créé
 
     for nozzle in nozzles:
         prev_line = _get_previous_fuel_line(prev_journal, nozzle.id)
@@ -139,32 +137,27 @@ def open_journal(
             else Decimal("0")
         )
 
-        # Cascade cuve partagée : si un pistolet précédent a déjà fourni un stock
-        # de clôture pour cette cuve, l'utiliser comme stock d'ouverture
-        if nozzle.tank_id in last_close_by_tank:
-            gauged_stock_open = last_close_by_tank[nozzle.tank_id]
-        elif prev_line and prev_line.gauged_stock_close is not None:
-            gauged_stock_open = prev_line.gauged_stock_close
-        elif nozzle.tank_id not in initialized_tanks:
-            # Premier journal pour cette cuve : utiliser le niveau actuel de la cuve
-            gauged_stock_open = nozzle.tank.current_level_liters
-        else:
-            # Pistolet suivant sur la même cuve, sans historique : 0
-            # (son stock d'ouverture réel sera la clôture du pistolet précédent)
-            gauged_stock_open = Decimal("0")
+        is_reference = nozzle.tank_id not in reference_tanks
 
-        initialized_tanks.add(nozzle.tank_id)
+        if is_reference:
+            reference_tanks.add(nozzle.tank_id)
+            # Le stock d'ouverture de la cuve vient de la clôture de la veille
+            # (via le même pistolet de référence) ou du niveau actuel de la cuve.
+            if prev_line and prev_line.gauged_stock_close is not None:
+                gauged_stock_open = prev_line.gauged_stock_close
+            else:
+                gauged_stock_open = nozzle.tank.current_level_liters
+        else:
+            # Pistolets non-référents : pas de jaugeage, uniquement les index
+            gauged_stock_open = Decimal("0")
 
         JournalFuelLine.objects.create(
             journal=journal,
             nozzle=nozzle,
             index_open=index_open,
             gauged_stock_open=gauged_stock_open,
+            received_volume=Decimal("0"),
         )
-
-        # Si ce pistolet a un stock de clôture J-1, l'enregistrer pour la cascade
-        if prev_line and prev_line.gauged_stock_close is not None:
-            last_close_by_tank[nozzle.tank_id] = prev_line.gauged_stock_close
 
     # Lignes lubrifiants — un par produit en stock dans la station
     lub_stocks = LubricantStock.objects.filter(
@@ -216,22 +209,50 @@ def close_journal(journal: StationJournal) -> StationJournal:
 
     tolerance_pct = journal.station.gauge_tolerance_pct
 
-    # Vérification des lignes carburant
-    for line in journal.fuel_lines.select_related("nozzle__tank__fuel_type"):
+    # Charger toutes les lignes carburant en une seule requête
+    all_fuel_lines = list(
+        journal.fuel_lines.select_related("nozzle__tank__fuel_type")
+    )
+
+    # Identifier le pistolet de référence (premier par display_order) pour chaque cuve
+    lines_by_tank: dict = {}
+    for line in all_fuel_lines:
+        tank_id = line.nozzle.tank_id
+        if tank_id not in lines_by_tank:
+            lines_by_tank[tank_id] = []
+        lines_by_tank[tank_id].append(line)
+
+    reference_lines: dict = {
+        tank_id: min(lines, key=lambda l: l.nozzle.display_order)
+        for tank_id, lines in lines_by_tank.items()
+    }
+
+    # Vérification 1 : tous les pistolets ont leur index de fermeture
+    for line in all_fuel_lines:
         if line.index_close is None:
             raise JournalServiceError(
                 f"L'index de fermeture du pistolet « {line.nozzle.label} » n'est pas renseigné."
             )
-        if line.gauged_stock_close is None:
+
+    # Vérification 2 : chaque pistolet de référence a son stock jaugé de clôture + commentaire si écart
+    for tank_id, ref_line in reference_lines.items():
+        if ref_line.gauged_stock_close is None:
             raise JournalServiceError(
-                f"Le stock jaugé de fermeture du pistolet « {line.nozzle.label} » "
+                f"Le stock jaugé de fermeture de la cuve « {ref_line.nozzle.tank.label} » "
                 f"n'est pas renseigné."
             )
-        if line.gauge_diff is not None and line.theoretical_stock and line.theoretical_stock > 0:
-            ecart_pct = abs(line.gauge_diff / line.theoretical_stock * 100)
-            if ecart_pct > tolerance_pct and not line.diff_comment.strip():
+        # Calcul de l'écart au niveau cuve (somme des ventes de tous les pistolets)
+        total_sold = sum(
+            l.sold_volume or Decimal("0") for l in lines_by_tank[tank_id]
+        )
+        theoretical = ref_line.gauged_stock_open + ref_line.received_volume - total_sold
+        if theoretical > 0:
+            ecart_pct = abs(
+                (ref_line.gauged_stock_close - theoretical) / theoretical * 100
+            )
+            if ecart_pct > tolerance_pct and not ref_line.diff_comment.strip():
                 raise JournalServiceError(
-                    f"L'écart de jaugeage du pistolet « {line.nozzle.label} » "
+                    f"L'écart de jaugeage de la cuve « {ref_line.nozzle.tank.label} » "
                     f"({ecart_pct:.1f}%) dépasse la tolérance ({tolerance_pct}%). "
                     f"Un commentaire est obligatoire."
                 )
@@ -242,16 +263,12 @@ def close_journal(journal: StationJournal) -> StationJournal:
     # Mise à jour des récaps ventes non-carburant depuis la caisse du jour
     _update_nonfuel_sales_recap(journal)
 
-    # Synchroniser le niveau des cuves depuis le jaugeage de clôture
-    # Plusieurs pistolets sur la même cuve → on prend la dernière valeur saisie
-    tanks_to_sync: dict = {}
-    for line in journal.fuel_lines.select_related("nozzle__tank"):
-        if line.gauged_stock_close is not None:
-            tank = line.nozzle.tank
-            tanks_to_sync[tank.id] = {"tank": tank, "level": line.gauged_stock_close}
-    for item in tanks_to_sync.values():
-        item["tank"].current_level_liters = item["level"]
-        item["tank"].save(update_fields=["current_level_liters", "updated_at"])
+    # Synchroniser le niveau de chaque cuve depuis le jaugeage de clôture du pistolet de référence
+    for tank_id, ref_line in reference_lines.items():
+        if ref_line.gauged_stock_close is not None:
+            tank = ref_line.nozzle.tank
+            tank.current_level_liters = ref_line.gauged_stock_close
+            tank.save(update_fields=["current_level_liters", "updated_at"])
 
     journal.status = "closed"
     journal.closed_at = timezone.now()

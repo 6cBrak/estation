@@ -16,38 +16,91 @@ from .models import (
 
 class JournalFuelLineSerializer(serializers.ModelSerializer):
     nozzle_label = serializers.CharField(source="nozzle.label", read_only=True)
+    tank_id = serializers.UUIDField(source="nozzle.tank_id", read_only=True)
+    tank_label = serializers.CharField(source="nozzle.tank.label", read_only=True)
     fuel_type = serializers.CharField(source="nozzle.tank.fuel_type.name", read_only=True)
-    output_volume = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    sold_volume = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    theoretical_stock = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    gauge_diff = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
-    )
-    amount_xof = serializers.DecimalField(
-        max_digits=14, decimal_places=2, read_only=True
-    )
+    is_tank_reference = serializers.SerializerMethodField()
+    output_volume = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    sold_volume = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    theoretical_stock = serializers.SerializerMethodField()
+    gauge_diff = serializers.SerializerMethodField()
+    amount_xof = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     monthly_gauge_diff = serializers.SerializerMethodField()
 
+    def _is_ref(self, obj: JournalFuelLine) -> bool:
+        """True si ce pistolet est le premier de sa cuve dans ce journal (display_order le plus bas).
+        Résultat mis en cache dans le contexte pour éviter les requêtes répétées."""
+        cache_key = f"_tank_ref_{obj.pk}"
+        ctx = self.context if hasattr(self, "context") else {}
+        if cache_key not in ctx:
+            first_id = (
+                JournalFuelLine.objects
+                .filter(journal_id=obj.journal_id, nozzle__tank_id=obj.nozzle.tank_id)
+                .order_by("nozzle__display_order")
+                .values_list("nozzle_id", flat=True)
+                .first()
+            )
+            ctx[cache_key] = first_id is not None and str(first_id) == str(obj.nozzle_id)
+        return ctx[cache_key]
+
+    def _tank_total_sold(self, obj: JournalFuelLine) -> Decimal:
+        """Somme des volumes vendus par tous les pistolets de cette cuve. Mis en cache."""
+        cache_key = f"_tank_sold_{obj.journal_id}_{obj.nozzle.tank_id}"
+        ctx = self.context if hasattr(self, "context") else {}
+        if cache_key not in ctx:
+            lines = JournalFuelLine.objects.filter(
+                journal_id=obj.journal_id,
+                nozzle__tank_id=obj.nozzle.tank_id,
+            )
+            ctx[cache_key] = sum(line.sold_volume or Decimal("0") for line in lines)
+        return ctx[cache_key]
+
+    def get_is_tank_reference(self, obj: JournalFuelLine) -> bool:
+        return self._is_ref(obj)
+
+    def get_theoretical_stock(self, obj: JournalFuelLine):
+        """Stock théorique au niveau CUVE = stock_ouv + appro − somme(ventes de tous les pistolets).
+        Retourné uniquement pour le pistolet de référence (premier de la cuve)."""
+        if not self._is_ref(obj):
+            return None
+        if obj.index_close is None:
+            return None
+        total_sold = self._tank_total_sold(obj)
+        return obj.gauged_stock_open + obj.received_volume - total_sold
+
+    def get_gauge_diff(self, obj: JournalFuelLine):
+        """Écart jaugeage = stock_réel − stock_théo (niveau cuve, référence uniquement)."""
+        if not self._is_ref(obj):
+            return None
+        theoretical = self.get_theoretical_stock(obj)
+        if obj.gauged_stock_close is None or theoretical is None:
+            return None
+        return obj.gauged_stock_close - theoretical
+
     def get_monthly_gauge_diff(self, obj: JournalFuelLine):
-        """Cumul mensuel des écarts de jaugeage pour ce pistolet (calculé en Python)."""
+        """Cumul mensuel des écarts de jaugeage pour cette cuve (référence uniquement)."""
+        if not self._is_ref(obj):
+            return None
+        from collections import defaultdict
         d = obj.journal.journal_date
         lines = JournalFuelLine.objects.filter(
             journal__station=obj.journal.station,
             journal__journal_date__year=d.year,
             journal__journal_date__month=d.month,
             journal__is_active=True,
-            nozzle=obj.nozzle,
-        )
-        total = Decimal("0")
+            nozzle__tank_id=obj.nozzle.tank_id,
+        ).select_related("nozzle")
+        # Grouper par journal pour calculer le sold total par jour
+        lines_by_journal: dict = defaultdict(list)
         for line in lines:
-            if line.gauge_diff is not None:
-                total += line.gauge_diff
+            lines_by_journal[line.journal_id].append(line)
+        total = Decimal("0")
+        for jlines in lines_by_journal.values():
+            ref = min(jlines, key=lambda l: l.nozzle.display_order)
+            if ref.gauged_stock_close is not None and ref.index_close is not None:
+                sold_sum = sum(l.sold_volume or Decimal("0") for l in jlines)
+                theo = ref.gauged_stock_open + ref.received_volume - sold_sum
+                total += ref.gauged_stock_close - theo
         return total
 
     class Meta:
@@ -56,7 +109,10 @@ class JournalFuelLineSerializer(serializers.ModelSerializer):
             "id",
             "nozzle",
             "nozzle_label",
+            "tank_id",
+            "tank_label",
             "fuel_type",
+            "is_tank_reference",
             "index_open",
             "index_close",
             "return_volume",
@@ -71,7 +127,10 @@ class JournalFuelLineSerializer(serializers.ModelSerializer):
             "amount_xof",
             "monthly_gauge_diff",
         ]
-        read_only_fields = ["id", "nozzle", "nozzle_label", "fuel_type", "index_open", "gauged_stock_open"]
+        read_only_fields = [
+            "id", "nozzle", "nozzle_label", "tank_id", "tank_label",
+            "fuel_type", "is_tank_reference", "index_open",
+        ]
 
 
 class JournalFuelLineUpdateSerializer(serializers.ModelSerializer):
@@ -102,6 +161,21 @@ class JournalFuelLineUpdateSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+        # Les champs de jaugeage/appro ne sont autorisés que sur le pistolet de référence (premier de la cuve)
+        tank_fields = {"received_volume", "gauged_stock_open", "gauged_stock_close", "diff_comment"}
+        if instance and tank_fields & set(attrs.keys()):
+            first_nozzle_id = (
+                JournalFuelLine.objects
+                .filter(journal_id=instance.journal_id, nozzle__tank_id=instance.nozzle.tank_id)
+                .order_by("nozzle__display_order")
+                .values_list("nozzle_id", flat=True)
+                .first()
+            )
+            if first_nozzle_id is None or str(first_nozzle_id) != str(instance.nozzle_id):
+                raise serializers.ValidationError(
+                    "Les données de jaugeage et d'approvisionnement ne peuvent être "
+                    "saisies que sur le premier pistolet de la cuve."
+                )
         return attrs
 
 

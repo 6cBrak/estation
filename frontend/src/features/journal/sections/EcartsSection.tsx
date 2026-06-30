@@ -22,7 +22,7 @@ export default function EcartsSection({ fuelLines, totalAmount }: EcartsSectionP
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b text-xs text-gray-500 uppercase tracking-wide">
-              <th className="px-4 py-2 text-left">Pistolet</th>
+              <th className="px-4 py-2 text-left">Cuve</th>
               <th className="px-4 py-2 text-left">Carburant</th>
               <th className="px-4 py-2 text-right">Stock théo. (L)</th>
               <th className="px-4 py-2 text-right">Stock réel (L)</th>
@@ -39,7 +39,7 @@ export default function EcartsSection({ fuelLines, totalAmount }: EcartsSectionP
 
               return (
                 <tr key={line.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{line.nozzle_label}</td>
+                  <td className="px-4 py-3 font-medium">{line.tank_label}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{line.fuel_type}</td>
                   <td className="px-4 py-3 text-right text-gray-600">
                     {line.theoretical_stock !== null ? Number(line.theoretical_stock).toLocaleString('fr-FR') : '—'}
