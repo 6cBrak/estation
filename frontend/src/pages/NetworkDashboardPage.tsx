@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Fuel, Banknote, LayoutGrid, TrendingUp, AlertTriangle, Droplets,
-  ChevronDown, ChevronRight, Receipt,
+  ChevronDown, ChevronRight, ChevronLeft, Receipt, CalendarDays,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { reportsApi } from '@/api/reports'
-import { formatXOF, today } from '@/lib/utils'
+import { formatXOF, today, yesterday, addDays, formatDateLong } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -243,14 +244,14 @@ function StationCard({ row }: { row: StationRow }) {
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function NetworkDashboardPage() {
-  const { data, isLoading } = useQuery<NetworkData>({
-    queryKey: ['network-dashboard', today()],
-    queryFn: () => reportsApi.networkDashboard().then((r) => r.data as NetworkData),
-    refetchInterval: 120_000,
-  })
+  const [selectedDate, setSelectedDate] = useState(yesterday())
 
-  const todayStr = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  const isToday = selectedDate === today()
+
+  const { data, isLoading } = useQuery<NetworkData>({
+    queryKey: ['network-dashboard', selectedDate],
+    queryFn: () => reportsApi.networkDashboard({ date: selectedDate }).then((r) => r.data as NetworkData),
+    refetchInterval: isToday ? 120_000 : false,
   })
 
   if (isLoading) {
@@ -264,9 +265,48 @@ export default function NetworkDashboardPage() {
   return (
     <div className="space-y-5">
       {/* En-tête */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tableau de bord réseau</h1>
-        <p className="text-sm text-gray-500 capitalize">{todayStr}</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord réseau</h1>
+        </div>
+        {/* Navigation de date */}
+        <div className="flex items-center gap-1 bg-white border rounded-lg px-2 py-1 shadow-sm">
+          <button
+            onClick={() => setSelectedDate(d => addDays(d, -1))}
+            className="p-1.5 rounded hover:bg-gray-100 text-gray-600"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="flex items-center gap-1.5 px-2 min-w-56 justify-center">
+            <CalendarDays size={14} className="text-gray-400 shrink-0" />
+            <span className="text-sm font-medium capitalize text-gray-800">
+              {formatDateLong(selectedDate)}
+            </span>
+          </div>
+          <button
+            onClick={() => !isToday && setSelectedDate(d => addDays(d, 1))}
+            disabled={isToday}
+            className="p-1.5 rounded hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronRight size={16} />
+          </button>
+          {!isToday && (
+            <button
+              onClick={() => setSelectedDate(yesterday())}
+              className="ml-1 text-xs text-blue-600 hover:underline px-1"
+            >
+              Hier
+            </button>
+          )}
+          {selectedDate !== today() && (
+            <button
+              onClick={() => setSelectedDate(today())}
+              className="text-xs text-gray-400 hover:text-gray-600 hover:underline px-1"
+            >
+              Auj.
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI réseau */}

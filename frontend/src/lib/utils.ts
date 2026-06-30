@@ -43,6 +43,18 @@ export function yesterday(): string {
   return d.toISOString().split('T')[0]
 }
 
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
+export function formatDateLong(dateStr: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
+
 /** Extrait le message d'erreur lisible depuis une erreur Axios/DRF. */
 export function extractApiError(err: unknown): string {
   const data = (err as { response?: { data?: unknown } })?.response?.data
