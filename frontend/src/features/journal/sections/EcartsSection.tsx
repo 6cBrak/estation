@@ -7,7 +7,8 @@ interface EcartsSectionProps {
 }
 
 export default function EcartsSection({ fuelLines, totalAmount }: EcartsSectionProps) {
-  const linesWithDiff = fuelLines.filter((l) => l.gauge_diff !== null)
+  const refLines = fuelLines.filter((l) => l.is_tank_reference)
+  const linesWithDiff = refLines.filter((l) => l.gauge_diff !== null)
 
   return (
     <div className="bg-white rounded-lg border">
@@ -31,7 +32,7 @@ export default function EcartsSection({ fuelLines, totalAmount }: EcartsSectionP
             </tr>
           </thead>
           <tbody>
-            {fuelLines.map((line) => {
+            {fuelLines.filter((l) => l.is_tank_reference).map((line) => {
               const diff = line.gauge_diff !== null ? Number(line.gauge_diff) : null
               const monthly = line.monthly_gauge_diff !== null ? Number(line.monthly_gauge_diff) : null
               const isNeg = diff !== null && diff < 0
