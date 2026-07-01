@@ -141,11 +141,31 @@ def open_journal(
 
         if is_reference:
             reference_tanks.add(nozzle.tank_id)
-            # Le stock d'ouverture de la cuve vient de la clôture de la veille
-            # (via le même pistolet de référence) ou du niveau actuel de la cuve.
-            if prev_line and prev_line.gauged_stock_close is not None:
+            # Le stock d'ouverture = stock théorique de la veille (niveau cuve).
+            # Le stock théorique = stock_ouv_J + appro_J − somme(ventes de tous
+            # les pistolets de la cuve sur J).
+            # Le jaugeage réel (gauged_stock_close) sert uniquement à l'écart
+            # du jour et ne reporte pas sur le lendemain.
+            if prev_line and prev_line.index_close is not None:
+                tank_sold = (
+                    JournalFuelLine.objects
+                    .filter(journal=prev_journal, nozzle__tank_id=nozzle.tank_id)
+                    .select_related("nozzle")
+                )
+                total_sold = sum(
+                    (l.sold_volume or Decimal("0")) for l in tank_sold
+                )
+                gauged_stock_open = (
+                    prev_line.gauged_stock_open
+                    + prev_line.received_volume
+                    - total_sold
+                )
+            elif prev_line and prev_line.gauged_stock_close is not None:
+                # Fallback : le jour précédent n'a pas d'index de clôture
+                # (journal non clôturé) → on prend le jaugeage réel
                 gauged_stock_open = prev_line.gauged_stock_close
             else:
+                # Premier journal pour cette cuve
                 gauged_stock_open = nozzle.tank.current_level_liters
         else:
             # Pistolets non-référents : pas de jaugeage, uniquement les index
