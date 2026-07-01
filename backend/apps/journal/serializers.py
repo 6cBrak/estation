@@ -19,6 +19,7 @@ class JournalFuelLineSerializer(serializers.ModelSerializer):
     tank_id = serializers.UUIDField(source="nozzle.tank_id", read_only=True)
     tank_label = serializers.CharField(source="nozzle.tank.label", read_only=True)
     fuel_type = serializers.CharField(source="nozzle.tank.fuel_type.name", read_only=True)
+    unit_price = serializers.DecimalField(source="nozzle.tank.fuel_type.unit_price", max_digits=10, decimal_places=2, read_only=True)
     is_tank_reference = serializers.SerializerMethodField()
     output_volume = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     sold_volume = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
@@ -112,6 +113,7 @@ class JournalFuelLineSerializer(serializers.ModelSerializer):
             "tank_id",
             "tank_label",
             "fuel_type",
+            "unit_price",
             "is_tank_reference",
             "index_open",
             "index_close",
@@ -129,7 +131,7 @@ class JournalFuelLineSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id", "nozzle", "nozzle_label", "tank_id", "tank_label",
-            "fuel_type", "is_tank_reference", "index_open",
+            "fuel_type", "unit_price", "is_tank_reference", "index_open",
         ]
 
 

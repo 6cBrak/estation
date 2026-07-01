@@ -38,6 +38,7 @@ export interface JournalFuelLine {
   tank_id: string
   tank_label: string
   fuel_type: string
+  unit_price: string
   is_tank_reference: boolean
   index_open: string
   index_close: string | null

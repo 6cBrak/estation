@@ -380,6 +380,11 @@ function TankBlock({
         <Droplets size={14} className="text-blue-500 shrink-0" />
         <span className="text-sm font-semibold text-gray-800">{tankLabel}</span>
         <span className="text-xs text-gray-400 ml-1">{fuelType}</span>
+        {refLine.unit_price && (
+          <span className="ml-auto text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">
+            {formatXOF(parseFloat(refLine.unit_price))} / L
+          </span>
+        )}
       </div>
 
       {/* En-tête jaugeage cuve (pistolet de référence) */}
