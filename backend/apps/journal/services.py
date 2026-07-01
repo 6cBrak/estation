@@ -296,18 +296,24 @@ def close_journal(journal: StationJournal) -> StationJournal:
     return journal
 
 
+def _fuel_code_to_category(raw_code: str) -> str | None:
+    """Détermine la catégorie récap depuis le code FuelType (matching souple par préfixe)."""
+    code = raw_code.lower().replace(" ", "").replace("-", "")
+    if any(code.startswith(p) for p in ("super", "sp", "essence", "sans")):
+        return "super"
+    if any(code.startswith(p) for p in ("petrole", "kerosene", "kero", "jet")):
+        return "petrole"
+    if any(code.startswith(p) for p in ("gasoil", "diesel", "go", "di", "gz", "gas")):
+        return "gasoil"
+    return None
+
+
 def _update_fuel_sales_recap(journal: StationJournal) -> None:
     """Met à jour les lignes récap carburant à partir des JournalFuelLine."""
-    FUEL_CODE_TO_CATEGORY = {
-        "super": "super", "sp95": "super", "sp98": "super", "essence": "super",
-        "petrole": "petrole", "kerosene": "petrole", "kero": "petrole",
-        "gasoil": "gasoil", "diesel": "gasoil", "go": "gasoil", "gas-oil": "gasoil",
-    }
-
     totals: dict[str, dict] = {}
     for line in journal.fuel_lines.select_related("nozzle__tank__fuel_type"):
-        fuel_code = line.nozzle.tank.fuel_type.code.lower()
-        category = FUEL_CODE_TO_CATEGORY.get(fuel_code)
+        fuel_code = line.nozzle.tank.fuel_type.code
+        category = _fuel_code_to_category(fuel_code)
         if category is None:
             continue
         if category not in totals:
