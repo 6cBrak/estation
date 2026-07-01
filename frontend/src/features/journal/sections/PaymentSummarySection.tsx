@@ -174,12 +174,13 @@ export default function PaymentSummarySection({
                 <span className="text-sm">= Montant en caisse</span>
                 <span className={cn(
                   'text-base font-bold',
-                  Number(summary.total_xof) + Number(summary.reimbursements_xof) - totalExpensesXof < 0
+                  Number(summary.cash_amount_xof) + Number(summary.credit_amount_xof) + Number(summary.reimbursements_xof) - totalExpensesXof < 0
                     ? 'text-red-600'
                     : 'text-green-700'
                 )}>
                   {formatXOF(
-                    Number(summary.total_xof)
+                    Number(summary.cash_amount_xof)
+                    + Number(summary.credit_amount_xof)
                     + Number(summary.reimbursements_xof)
                     - totalExpensesXof
                   )}
