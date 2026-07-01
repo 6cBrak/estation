@@ -44,6 +44,7 @@ export default function PaymentSummarySection({
     tpe_amount_xof: summary.tpe_amount_xof,
     mobile_money_amount_xof: summary.mobile_money_amount_xof,
     credit_amount_xof: summary.credit_amount_xof,
+    reimbursements_xof: summary.reimbursements_xof,
     ecart_pompiste_xof: summary.ecart_pompiste_xof,
   })
 
@@ -137,7 +138,7 @@ export default function PaymentSummarySection({
               )}
             </div>
 
-            {/* Total encaissé */}
+            {/* Total encaissé (hors remboursements — base pour l'écart encaissement) */}
             <div className="flex items-center justify-between pt-3 border-t font-bold">
               <span className="text-sm">Total encaissé</span>
               <span className="text-base text-blue-700">
@@ -145,8 +146,30 @@ export default function PaymentSummarySection({
               </span>
             </div>
 
-            {/* Dépenses du jour → Montant en caisse */}
+            {/* Remboursements reçus + Dépenses → Montant en caisse */}
             <div className="mt-3 pt-3 border-t space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">+ Remboursements reçus</span>
+                {editing ? (
+                  <Input
+                    type="number"
+                    step="1"
+                    value={form.reimbursements_xof ?? '0'}
+                    onChange={(e) => setForm((f) => ({ ...f, reimbursements_xof: e.target.value }))}
+                    className="w-36 h-7 text-right text-sm"
+                  />
+                ) : (
+                  <span className="text-sm font-medium text-green-700">
+                    {formatXOF(Number(summary.reimbursements_xof || '0'))}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">− Crédit accordé</span>
+                <span className="text-sm text-gray-500">
+                  {formatXOF(Number(summary.credit_amount_xof || '0'))}
+                </span>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">− Dépenses du jour</span>
                 <span className="text-sm text-red-600 font-medium">
@@ -157,9 +180,16 @@ export default function PaymentSummarySection({
                 <span className="text-sm">= Montant en caisse</span>
                 <span className={cn(
                   'text-base font-bold',
-                  Number(summary.total_xof) - totalExpensesXof < 0 ? 'text-red-600' : 'text-green-700'
+                  Number(summary.total_xof) - Number(summary.credit_amount_xof) + Number(summary.reimbursements_xof) - totalExpensesXof < 0
+                    ? 'text-red-600'
+                    : 'text-green-700'
                 )}>
-                  {formatXOF(Number(summary.total_xof) - totalExpensesXof)}
+                  {formatXOF(
+                    Number(summary.total_xof)
+                    - Number(summary.credit_amount_xof)
+                    + Number(summary.reimbursements_xof)
+                    - totalExpensesXof
+                  )}
                 </span>
               </div>
             </div>

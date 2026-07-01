@@ -60,9 +60,26 @@ export const journalApi = {
     tpe_amount_xof: string
     mobile_money_amount_xof: string
     credit_amount_xof: string
+    reimbursements_xof: string
     avoir_fuel_xof: string
     avoir_cash_xof: string
   }>) => api.patch(`/journal/payment-summaries/${id}/`, data),
+
+  creditState: (params: { station?: string; from_date?: string; to_date?: string }) =>
+    api.get<{
+      station_id: string
+      station_name: string
+      total_credit_xof: string
+      total_reimbursements_xof: string
+      solde_restant_xof: string
+      entries: {
+        date: string
+        journal_number: string
+        credit_xof: string
+        reimbursement_xof: string
+        solde_cumul_xof: string
+      }[]
+    }>('/journal/journals/credit-state/', { params }),
 
   createExpense: (data: { journal?: string; expense_date?: string; label: string; amount_xof: string; category: string }) =>
     api.post(`/journal/expenses/`, data),

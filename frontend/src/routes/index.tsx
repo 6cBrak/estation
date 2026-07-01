@@ -14,6 +14,7 @@ import ReportsPage from '@/features/reports/ReportsPage'
 import CaissePage from '@/features/sales/CaissePage'
 import ChargesPage from '@/pages/ChargesPage'
 import AvoirPage from '@/features/avoir/AvoirPage'
+import CreditStatePage from '@/pages/CreditStatePage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: <UsersPage /> },
       { path: 'charges', element: <ChargesPage /> },
       { path: 'avoir', element: <AvoirPage /> },
+      { path: 'credits-etat', element: <CreditStatePage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },

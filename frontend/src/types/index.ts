@@ -86,6 +86,7 @@ export interface JournalPaymentSummary {
   tpe_amount_xof: string
   mobile_money_amount_xof: string
   credit_amount_xof: string
+  reimbursements_xof: string
   ecart_pompiste_xof: string
   total_xof: string
   avoir_fuel_xof: string

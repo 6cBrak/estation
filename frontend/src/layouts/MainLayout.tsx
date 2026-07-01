@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, ShoppingCart, Fuel,
   Users, Package, Truck, BarChart2, LogOut,
-  Menu, X, ChevronRight, Fuel as FuelIcon, Settings, ChevronsUpDown, Check, Receipt, Wallet,
+  Menu, X, ChevronRight, Fuel as FuelIcon, Settings, ChevronsUpDown, Check, Receipt, Wallet, CreditCard,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn, unwrapList } from '@/lib/utils'
@@ -28,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/stock', label: 'Stocks', icon: <Package size={18} />, roles: ['super_admin', 'manager'] },
   { to: '/charges', label: 'Charges', icon: <Receipt size={18} />, roles: ['super_admin', 'manager'] },
   { to: '/avoir', label: 'Avoir numérique', icon: <Wallet size={18} />, roles: ['super_admin', 'manager'] },
+  { to: '/credits-etat', label: 'État des crédits', icon: <CreditCard size={18} />, roles: ['super_admin', 'manager'] },
   { to: '/suppliers', label: 'Fournisseurs', icon: <Truck size={18} />, roles: ['super_admin', 'manager'] },
   { to: '/reports', label: 'Rapports', icon: <BarChart2 size={18} />, roles: ['super_admin', 'manager'] },
   { to: '/users', label: 'Utilisateurs', icon: <Users size={18} />, roles: ['super_admin'] },

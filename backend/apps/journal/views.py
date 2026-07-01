@@ -39,6 +39,7 @@ from .services import (
     close_journal,
     delete_journal,
     open_journal,
+    refresh_fuel_sales_recap,
     reopen_journal,
     sync_journal_nozzles,
     validate_journal,
@@ -192,6 +193,70 @@ class StationJournalViewSet(StationFilterMixin, ModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=["get"], url_path="credit-state")
+    def credit_state(self, request):
+        """État des crédits : historique des crédits accordés et remboursements."""
+        from datetime import date as date_type
+        from decimal import Decimal as D
+
+        station = self._get_station_from_request()
+        from_date_str = request.query_params.get("from_date")
+        to_date_str = request.query_params.get("to_date")
+
+        from_date_obj = None
+        to_date_obj = None
+        try:
+            if from_date_str:
+                from_date_obj = date_type.fromisoformat(from_date_str)
+            if to_date_str:
+                to_date_obj = date_type.fromisoformat(to_date_str)
+        except ValueError:
+            pass
+
+        all_summaries = (
+            JournalPaymentSummary.objects.filter(
+                journal__station=station,
+                journal__is_active=True,
+            )
+            .select_related("journal")
+            .order_by("journal__journal_date")
+        )
+
+        entries = []
+        cumul = D("0")
+        total_credit = D("0")
+        total_reimb = D("0")
+
+        for summary in all_summaries:
+            credit = summary.credit_amount_xof or D("0")
+            reimb = summary.reimbursements_xof or D("0")
+            cumul += credit - reimb
+            total_credit += credit
+            total_reimb += reimb
+
+            jdate = summary.journal.journal_date
+            in_range = (
+                (from_date_obj is None or jdate >= from_date_obj)
+                and (to_date_obj is None or jdate <= to_date_obj)
+            )
+            if in_range and (credit > 0 or reimb > 0):
+                entries.append({
+                    "date": str(jdate),
+                    "journal_number": summary.journal.journal_number,
+                    "credit_xof": str(credit),
+                    "reimbursement_xof": str(reimb),
+                    "solde_cumul_xof": str(cumul),
+                })
+
+        return Response({
+            "station_id": str(station.id),
+            "station_name": station.name,
+            "total_credit_xof": str(total_credit),
+            "total_reimbursements_xof": str(total_reimb),
+            "solde_restant_xof": str(total_credit - total_reimb),
+            "entries": entries,
+        })
+
     @action(detail=True, methods=["get"], url_path="pdf")
     def pdf(self, request, pk=None):
         """Génère et retourne le PDF du journal."""
@@ -283,6 +348,8 @@ class JournalFuelLineViewSet(_JournalSubModelMixin, RetrieveModelMixin, UpdateMo
         serializer = JournalFuelLineUpdateSerializer(line, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
+        refresh_fuel_sales_recap(line.journal)
 
         out = JournalFuelLineSerializer(line, context={"request": request})
         return Response(out.data)

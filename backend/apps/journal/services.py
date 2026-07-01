@@ -428,6 +428,11 @@ def _update_nonfuel_sales_recap(journal: StationJournal) -> None:
             recap.save(update_fields=["qty", "daily_value_xof", "monthly_cumul_xof"])
 
 
+def refresh_fuel_sales_recap(journal: StationJournal) -> None:
+    """Met à jour les lignes récap carburant (super/pétrole/gas-oil) en temps réel."""
+    _update_fuel_sales_recap(journal)
+
+
 @transaction.atomic
 def sync_journal_nozzles(journal: StationJournal) -> list[JournalFuelLine]:
     """

@@ -11,6 +11,9 @@ import type { JournalSalesRecap } from '@/types'
 // Catégories dont la valeur est calculée auto depuis les lignes carburant
 const AUTO_CATEGORIES = new Set(['super', 'petrole', 'gasoil'])
 
+// Catégories non affichées dans le récap ventes
+const HIDDEN_CATEGORIES = new Set(['graissage', 'lavage', 'lubs_piste', 'vidange'])
+
 function RecapRow({
   recap,
   isEditable,
@@ -121,8 +124,9 @@ export default function SalesRecapSection({
   isEditable: boolean
   journalId: string
 }) {
-  const totalDaily = recaps.reduce((s, r) => s + parseFloat(r.daily_value_xof || '0'), 0)
-  const totalMonthly = recaps.reduce((s, r) => s + parseFloat(r.monthly_cumul_xof || '0'), 0)
+  const visibleRecaps = recaps.filter((r) => !HIDDEN_CATEGORIES.has(r.category))
+  const totalDaily = visibleRecaps.reduce((s, r) => s + parseFloat(r.daily_value_xof || '0'), 0)
+  const totalMonthly = visibleRecaps.reduce((s, r) => s + parseFloat(r.monthly_cumul_xof || '0'), 0)
 
   return (
     <Card>
@@ -146,7 +150,7 @@ export default function SalesRecapSection({
             </tr>
           </thead>
           <tbody>
-            {recaps.map((r) => (
+            {visibleRecaps.map((r) => (
               <RecapRow key={r.id} recap={r} isEditable={isEditable} journalId={journalId} />
             ))}
             <tr className="bg-gray-50 font-semibold text-sm">

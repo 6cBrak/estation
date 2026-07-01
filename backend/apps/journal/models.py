@@ -247,6 +247,7 @@ class JournalPaymentSummary(models.Model):
     tpe_amount_xof = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     mobile_money_amount_xof = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     credit_amount_xof = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    reimbursements_xof = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     # Erreurs de distribution du pompiste (saisie manuelle par le gérant)
     ecart_pompiste_xof = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     # Retrait de l'avoir numérique (TPE + Tickets)

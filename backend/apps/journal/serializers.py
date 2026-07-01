@@ -279,6 +279,7 @@ class JournalPaymentSummarySerializer(serializers.ModelSerializer):
             "tpe_amount_xof",
             "mobile_money_amount_xof",
             "credit_amount_xof",
+            "reimbursements_xof",
             "ecart_pompiste_xof",
             "total_xof",
             "avoir_fuel_xof",
