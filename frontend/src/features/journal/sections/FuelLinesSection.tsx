@@ -11,6 +11,7 @@ import type { JournalFuelLine } from '@/types'
 // ─── Saisie d'une ligne pistolet (index + retours) ───────────────────────────
 
 interface NozzleEditState {
+  index_open: string
   index_close: string
   return_volume: string
 }
@@ -27,6 +28,7 @@ function NozzleRow({
   const qc = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<NozzleEditState>({
+    index_open: line.index_open,
     index_close: line.index_close ?? '',
     return_volume: line.return_volume,
   })
@@ -35,6 +37,7 @@ function NozzleRow({
   const mutation = useMutation({
     mutationFn: () =>
       journalApi.updateFuelLine(line.id, {
+        index_open: form.index_open,
         index_close: form.index_close || undefined,
         return_volume: form.return_volume,
       }),
@@ -70,7 +73,14 @@ function NozzleRow({
 
         {editing ? (
           <>
-            <td className="py-1 px-2 text-right text-sm font-mono text-gray-500">{line.index_open}</td>
+            <td className="py-1 px-2">
+              <Input
+                type="number" step="0.01"
+                value={form.index_open}
+                onChange={(e) => setForm((f) => ({ ...f, index_open: e.target.value }))}
+                className="w-28 h-7 text-xs text-right bg-yellow-50"
+              />
+            </td>
             <td className="py-1 px-2">
               <Input
                 type="number" step="0.01"
