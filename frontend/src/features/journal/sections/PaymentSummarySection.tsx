@@ -165,12 +165,6 @@ export default function PaymentSummarySection({
                 )}
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">− Crédit accordé</span>
-                <span className="text-sm text-gray-500">
-                  {formatXOF(Number(summary.credit_amount_xof || '0'))}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">− Dépenses du jour</span>
                 <span className="text-sm text-red-600 font-medium">
                   {formatXOF(totalExpensesXof)}
@@ -180,13 +174,12 @@ export default function PaymentSummarySection({
                 <span className="text-sm">= Montant en caisse</span>
                 <span className={cn(
                   'text-base font-bold',
-                  Number(summary.total_xof) - Number(summary.credit_amount_xof) + Number(summary.reimbursements_xof) - totalExpensesXof < 0
+                  Number(summary.total_xof) + Number(summary.reimbursements_xof) - totalExpensesXof < 0
                     ? 'text-red-600'
                     : 'text-green-700'
                 )}>
                   {formatXOF(
                     Number(summary.total_xof)
-                    - Number(summary.credit_amount_xof)
                     + Number(summary.reimbursements_xof)
                     - totalExpensesXof
                   )}
